@@ -60,7 +60,7 @@ export function InteractiveTerminal() {
         responseNode = (
           <div className="text-xs font-mono text-slate-300 space-y-1">
             <p className="text-cyan-400 font-bold">Available Commands:</p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 pl-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 pl-2">
               <div><strong className="text-slate-200">whoami</strong> - Profile & role</div>
               <div><strong className="text-slate-200">focus</strong> - Core AI/ML areas</div>
               <div><strong className="text-slate-200">projects</strong> - Featured systems</div>

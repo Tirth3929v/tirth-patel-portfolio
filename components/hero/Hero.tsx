@@ -34,8 +34,8 @@ export function Hero() {
 
             {/* Developer Identity & Headline */}
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-foreground">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h1 className="text-3xl min-[400px]:text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-foreground">
                   {profileData.name}
                 </h1>
                 <span className="px-2.5 py-1 rounded text-xs font-mono bg-muted border border-border text-cyan-600 dark:text-cyan-400">

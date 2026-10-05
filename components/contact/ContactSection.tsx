@@ -150,6 +150,7 @@ export function ContactSection() {
                   </label>
                   <input
                     type="text"
+                    maxLength={200}
                     placeholder="e.g. Master's Admissions Inquiry / AI Engineering Role"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
@@ -164,6 +165,7 @@ export function ContactSection() {
                   </label>
                   <textarea
                     rows={4}
+                    maxLength={2500}
                     placeholder="Describe your inquiry, project scope, or opportunity..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}

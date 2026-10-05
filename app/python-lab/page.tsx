@@ -401,10 +401,10 @@ export default function PythonLabPage() {
         </div>
 
         {/* IDE Main Shell (Optimized 3-panel layout: 25% Explorer / 41.7% Editor / 33.3% Terminal) */}
-        <div className="rounded-2xl border border-border bg-card shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[660px] [overflow-anchor:none]">
+        <div className="rounded-2xl border border-border bg-card shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-0 lg:min-h-[660px] [overflow-anchor:none]">
           
           {/* PANEL 1: Left Day Selector / Explorer (Col 3 -> ~25%) */}
-          <div className="lg:col-span-3 border-r border-border flex flex-col bg-muted/40">
+          <div className="lg:col-span-3 border-r-0 lg:border-r border-b lg:border-b-0 border-border flex flex-col bg-muted/40">
             {/* Explorer Header */}
             <div className="p-3 border-b border-border flex items-center justify-between">
               <span className="text-xs font-mono uppercase text-muted-foreground font-bold tracking-wider flex items-center gap-2">
@@ -428,8 +428,8 @@ export default function PythonLabPage() {
               </div>
             </div>
 
-            {/* Scrollable Day List */}
-            <div className="flex-1 overflow-y-auto max-h-[580px] p-2 space-y-1">
+            {/* Scrollable Day List - Compact on mobile, expanded on desktop */}
+            <div className="flex-1 overflow-y-auto max-h-[220px] sm:max-h-[280px] lg:max-h-[580px] p-2 space-y-1">
               {filteredProjects.map((p) => {
                 const isSelected = p.day === selectedDay;
                 return (
@@ -464,7 +464,7 @@ export default function PythonLabPage() {
           </div>
 
           {/* PANEL 2: Center Code Viewer (Col 5 -> ~41.7%) */}
-          <div className="lg:col-span-5 border-r border-border flex flex-col bg-card">
+          <div className="lg:col-span-5 border-r-0 lg:border-r border-b lg:border-b-0 border-border flex flex-col bg-card">
             {/* Editor File Tabs */}
             <div className="px-3 py-2 bg-muted/60 border-b border-border flex items-center justify-between overflow-x-auto gap-2">
               <div className="flex items-center gap-1 overflow-x-auto">
@@ -552,7 +552,7 @@ export default function PythonLabPage() {
                   value={editableCode}
                   onChange={(e) => setEditableCode(e.target.value)}
                   spellCheck={false}
-                  className="flex-1 bg-transparent text-foreground font-mono text-xs leading-relaxed resize-none focus:outline-none overflow-x-auto min-h-[460px]"
+                  className="flex-1 bg-transparent text-foreground font-mono text-xs leading-relaxed resize-none focus:outline-none overflow-x-auto min-h-[260px] sm:min-h-[340px] lg:min-h-[460px]"
                 />
               </div>
             </div>
@@ -613,7 +613,7 @@ export default function PythonLabPage() {
             </div>
 
             {/* 2. Dominant WebAssembly Terminal Container (Expanded Height, Zero Void Space) */}
-            <div className="flex-1 flex flex-col bg-slate-950 text-slate-100 min-h-[460px] lg:min-h-[500px] overflow-hidden">
+            <div className="flex-1 flex flex-col bg-slate-950 text-slate-100 min-h-[340px] sm:min-h-[400px] lg:min-h-[500px] overflow-hidden">
               
               {/* Terminal Top Window Bar */}
               <div className="px-3.5 py-2 bg-slate-900 border-b border-white/10 flex items-center justify-between text-xs font-mono select-none">

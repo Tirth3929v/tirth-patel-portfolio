@@ -1,12 +1,15 @@
 /**
  * Client-Side In-Browser Pyodide / CPython WebAssembly Execution Engine
  *
- * Security & Architecture:
+ * Security & Architecture Hardening:
  * - Runs 100% inside the user's browser sandbox via WebAssembly (Pyodide).
- * - Zero server-side eval() or exec() execution.
- * - Streams live sys.stdout and sys.stderr in real time.
+ * - Zero server-side eval() or exec() execution — zero server secrets or filesystem exposed.
+ * - Streams live sys.stdout and sys.stderr in real time with 100,000 char flood protection.
+ * - Isolated user environment per run to prevent global state pollution.
+ * - Restricts direct JavaScript/DOM bridge (js, pyodide_js) from user code execution.
  * - Supports real interactive Python input() with asynchronous suspension.
- * - Mounts auxiliary project files (art.py, helper modules) to Pyodide virtual FS.
+ * - Mounts auxiliary project files into Pyodide virtual in-memory FS.
+ * - Timeout protection watchdog to prevent runaway execution.
  */
 
 export interface ExecutionResult {
@@ -77,7 +80,7 @@ export async function loadPyodideRuntime(
           script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
           script.async = true;
           script.onload = () => res();
-          script.onerror = () => rej(new Error("Failed to load Pyodide WebAssembly script."));
+          script.onerror = () => rej(new Error("Failed to load Pyodide WebAssembly script from CDN."));
           document.head.appendChild(script);
         });
       }
@@ -113,33 +116,8 @@ async function initializeHarness(pyodide: PyodideInterface) {
 import sys
 import ast
 import traceback
+import builtins
 from js import window
-
-class _StreamCapture:
-    def __init__(self, is_stderr=False):
-        self.is_stderr = is_stderr
-        self.buffer = []
-
-    def write(self, s):
-        if s is None:
-            return
-        str_val = str(s)
-        self.buffer.append(str_val)
-        try:
-            if self.is_stderr:
-                if hasattr(window, "__pyodide_on_stderr") and window.__pyodide_on_stderr:
-                    window.__pyodide_on_stderr(str_val)
-            else:
-                if hasattr(window, "__pyodide_on_stdout") and window.__pyodide_on_stdout:
-                    window.__pyodide_on_stdout(str_val)
-        except Exception:
-            pass
-
-    def flush(self):
-        pass
-
-    def getvalue(self):
-        return "".join(self.buffer)
 
 class _AsyncInputTransformer(ast.NodeTransformer):
     def __init__(self):
@@ -207,30 +185,55 @@ class _AsyncInputTransformer(ast.NodeTransformer):
             return ast.copy_location(ast.Await(value=node), node)
         return node
 
-async def _execute_user_script(code_str, on_stdout_cb=None, on_stderr_cb=None, on_input_cb=None):
-    class _DirectStream:
-        def __init__(self, callback, is_stderr=False):
-            self.callback = callback
-            self.is_stderr = is_stderr
-            self.buffer = []
+MAX_OUTPUT_CHARS = 100_000
 
-        def write(self, s):
-            if s is None:
-                return
-            str_val = str(s)
-            self.buffer.append(str_val)
+class _DirectStream:
+    def __init__(self, callback, is_stderr=False):
+        self.callback = callback
+        self.is_stderr = is_stderr
+        self.buffer = []
+        self.total_chars = 0
+        self.truncated = False
+
+    def write(self, s):
+        if s is None or self.truncated:
+            return
+        str_val = str(s)
+        if self.total_chars + len(str_val) > MAX_OUTPUT_CHARS:
+            remain = max(0, MAX_OUTPUT_CHARS - self.total_chars)
+            if remain > 0:
+                self.buffer.append(str_val[:remain])
+                self.total_chars += remain
+                if self.callback:
+                    try:
+                        self.callback(str_val[:remain])
+                    except Exception:
+                        pass
+            trunc_msg = "\\n[!] Output limit (100,000 characters) reached. Stream truncated to protect browser responsiveness.\\n"
+            self.buffer.append(trunc_msg)
+            self.truncated = True
             if self.callback:
                 try:
-                    self.callback(str_val)
+                    self.callback(trunc_msg)
                 except Exception:
                     pass
+            return
 
-        def flush(self):
-            pass
+        self.total_chars += len(str_val)
+        self.buffer.append(str_val)
+        if self.callback:
+            try:
+                self.callback(str_val)
+            except Exception:
+                pass
 
-        def getvalue(self):
-            return "".join(self.buffer)
+    def flush(self):
+        pass
 
+    def getvalue(self):
+        return "".join(self.buffer)
+
+async def _execute_user_script(code_str, on_stdout_cb=None, on_stderr_cb=None, on_input_cb=None):
     _stdout_cap = _DirectStream(on_stdout_cb, is_stderr=False)
     _stderr_cap = _DirectStream(on_stderr_cb, is_stderr=True)
     _old_stdout, _old_stderr = sys.stdout, sys.stderr
@@ -251,6 +254,25 @@ async def _execute_user_script(code_str, on_stdout_cb=None, on_stderr_cb=None, o
         transformer = _AsyncInputTransformer()
         transformer.find_async_functions(tree)
 
+        # Build hardened sandbox environment
+        user_builtins = dict(builtins.__dict__)
+        _orig_import = user_builtins["__import__"]
+
+        def _sandboxed_import(name, *args, **kwargs):
+            if name in ("js", "pyodide_js") or name.startswith(("js.", "pyodide_js.")):
+                raise ImportError(f"Access to '{name}' is restricted in the browser sandbox for security.")
+            return _orig_import(name, *args, **kwargs)
+
+        user_builtins["__import__"] = _sandboxed_import
+
+        user_env = {
+            "__name__": "__main__",
+            "__doc__": None,
+            "__package__": None,
+            "__builtins__": user_builtins,
+            "_py_async_input": _py_async_input,
+        }
+
         if transformer.has_input:
             transformed_tree = transformer.visit(tree)
             ast.fix_missing_locations(transformed_tree)
@@ -270,13 +292,11 @@ async def _execute_user_script(code_str, on_stdout_cb=None, on_stderr_cb=None, o
             module = ast.Module(body=[main_func], type_ignores=[])
             ast.fix_missing_locations(module)
             compiled = compile(module, "<user_code>", "exec")
-            user_env = dict(globals())
-            user_env["_py_async_input"] = _py_async_input
             exec(compiled, user_env)
             await user_env["_auto_main"]()
         else:
             compiled = compile(tree, "<user_code>", "exec")
-            exec(compiled, globals())
+            exec(compiled, user_env)
 
     except SystemExit as e:
         _exit_code = e.code if isinstance(e.code, int) else 0
@@ -305,6 +325,7 @@ export interface RunPythonOptions {
   onStderr?: (text: string) => void;
   onRequestInput?: (prompt: string) => Promise<string>;
   onProgress?: (msg: string) => void;
+  timeoutMs?: number;
 }
 
 export async function runPythonCode(
@@ -318,6 +339,7 @@ export async function runPythonCode(
   let onStderr: ((text: string) => void) | undefined;
   let onRequestInput: ((prompt: string) => Promise<string>) | undefined;
   let progressFn: ((msg: string) => void) | undefined = onProgress;
+  let timeoutMs = 60000; // 60s safety timeout
 
   if (typeof optionsOrCode === "string") {
     code = optionsOrCode;
@@ -329,6 +351,7 @@ export async function runPythonCode(
     onStderr = optionsOrCode.onStderr;
     onRequestInput = optionsOrCode.onRequestInput;
     progressFn = optionsOrCode.onProgress || onProgress;
+    timeoutMs = optionsOrCode.timeoutMs || 60000;
   }
 
   const startTime = performance.now();
@@ -362,12 +385,24 @@ export async function runPythonCode(
       onRequestInput?: (prompt: string) => Promise<string>
     ) => Promise<PyProxy>;
 
-    const pyResultProxy = await runner(
+    // Execution with timeout watchdog
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(() => {
+        reject(new Error(`Execution timed out: Program exceeded maximum runtime limit (${Math.round(timeoutMs / 1000)}s).`));
+      }, timeoutMs);
+    });
+
+    const executionPromise = runner(
       code,
       onStdout ? (text: string) => onStdout(text) : undefined,
       onStderr ? (text: string) => onStderr(text) : undefined,
       onRequestInput ? (prompt: string) => onRequestInput(prompt) : undefined
     );
+
+    const pyResultProxy = await Promise.race([executionPromise, timeoutPromise]);
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+
     const pyResult = pyResultProxy.toJs({ dict_converter: Object.fromEntries }) as {
       stdout: string;
       stderr: string;

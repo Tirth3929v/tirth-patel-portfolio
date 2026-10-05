@@ -18,6 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://tirthpatelai.xyz"),
   title: "Tirth Patel | AI Engineer & Python Developer",
   description:
     "Production AI systems, applied machine learning pipelines, multi-agent frameworks, and 100 Days Python Lab by Tirth Patel. Built for engineering teams and graduate Computer Science / AI admissions.",

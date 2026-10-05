@@ -21,13 +21,19 @@ interface CertificateModalProps {
 
 export function CertificateModal({ certificate, onClose }: CertificateModalProps) {
   const [zoom, setZoom] = useState(1);
+  const closeButtonRef = React.useRef<HTMLButtonElement>(null);
 
-  // Lock body scroll and listen for Escape key
+  // Lock body scroll, listen for Escape key, and set initial focus
   useEffect(() => {
     if (!certificate) return;
 
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    // Set initial focus to close button for keyboard accessibility
+    if (closeButtonRef.current) {
+      closeButtonRef.current.focus();
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -120,8 +126,9 @@ export function CertificateModal({ certificate, onClose }: CertificateModalProps
             )}
 
             <button
+              ref={closeButtonRef}
               onClick={onClose}
-              className="p-1.5 rounded-lg border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              className="p-1.5 rounded-lg border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               aria-label="Close modal"
             >
               <X className="w-4 h-4" />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useSyncExternalStore } from "react";
+import React, { createContext, useContext, useSyncExternalStore, useEffect } from "react";
 
 type Theme = "dark" | "light";
 
@@ -27,11 +27,17 @@ function subscribe(callback: () => void) {
   };
 }
 
+function getSystemTheme(): Theme {
+  if (typeof window === "undefined" || !window.matchMedia) return "dark";
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
 function getThemeSnapshot(): Theme {
   if (typeof window === "undefined") return "dark";
   try {
     const stored = localStorage.getItem("tirth-portfolio-theme");
-    return stored === "light" || stored === "dark" ? stored : "dark";
+    if (stored === "light" || stored === "dark") return stored;
+    return getSystemTheme();
   } catch {
     return "dark";
   }
@@ -62,9 +68,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useSyncExternalStore(subscribe, getThemeSnapshot, getThemeServerSnapshot);
 
   // Synchronize external DOM system with theme state
-  React.useEffect(() => {
+  useEffect(() => {
     applyThemeToDOM(theme);
   }, [theme]);
+
+  // Listen to OS prefers-color-scheme changes when user hasn't overridden
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+    const handleSystemChange = () => {
+      const stored = localStorage.getItem("tirth-portfolio-theme");
+      if (!stored) {
+        emitChange();
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleSystemChange);
+    return () => mediaQuery.removeEventListener("change", handleSystemChange);
+  }, []);
 
   const toggleTheme = () => {
     const next: Theme = theme === "dark" ? "light" : "dark";

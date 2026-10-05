@@ -125,7 +125,7 @@ export function CommandPalette() {
       title: "Download Resume (PDF)",
       category: "Social & Documents",
       icon: <FileText className="w-4 h-4 text-cyan-500" />,
-      action: () => { window.open("/resume.pdf", "_blank"); setIsOpen(false); },
+      action: () => { window.open("/resume.pdf", "_blank", "noopener,noreferrer"); setIsOpen(false); },
     },
     {
       id: "theme",
@@ -139,14 +139,14 @@ export function CommandPalette() {
       title: "Open GitHub Profile",
       category: "Social & Documents",
       icon: <Github className="w-4 h-4 text-foreground" />,
-      action: () => { window.open(profileData.socials.github, "_blank"); setIsOpen(false); },
+      action: () => { window.open(profileData.socials.github, "_blank", "noopener,noreferrer"); setIsOpen(false); },
     },
     {
       id: "linkedin",
       title: "Connect on LinkedIn",
       category: "Social & Documents",
       icon: <Linkedin className="w-4 h-4 text-sky-500" />,
-      action: () => { window.open(profileData.socials.linkedin, "_blank"); setIsOpen(false); },
+      action: () => { window.open(profileData.socials.linkedin, "_blank", "noopener,noreferrer"); setIsOpen(false); },
     },
   ];
 
