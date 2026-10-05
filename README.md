@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tirth Patel - Developer Portfolio
 
-## Getting Started
+Modern, high-performance developer portfolio built with **Next.js 16**, **React 19**, **TypeScript**, **Tailwind CSS v4**, and **Framer Motion**.
 
-First, run the development server:
+Featuring an interactive terminal, live in-browser Python runtime lab (via Pyodide), full project deep-dives, academic credentials, verified certifications, and seamless responsive design.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Key Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- ⚡ **Next.js 16 & React 19**: App Router architecture with static generation, fast page transitions, and Turbopack.
+- 💻 **Interactive Terminal**: Terminal interface on the home page with executable portfolio commands.
+- 🐍 **In-Browser Python Lab**: 100 Days of Python code runner powered directly in the browser via Pyodide.
+- 📂 **Case Studies & Project Dives**: Dynamic project showcases with architecture overviews, tech stacks, and live links.
+- 🎓 **Academics & Verified Certifications**: PDF modal viewers for degree certificates, internship completion letters, and hackathon awards.
+- 🎨 **Modern Cyber-Glass Aesthetics**: Tailored dark theme, neon accents, smooth Framer Motion entrance & scroll animations.
+- 🔍 **SEO & Performance Ready**: Dynamic `sitemap.ts`, `robots.ts`, OpenGraph metadata, and semantic markup.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🛠️ Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework**: [Next.js](https://nextjs.org/) (App Router, Turbopack)
+- **Library**: [React 19](https://react.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **In-Browser Execution**: Pyodide (WebAssembly Python)
+- **Effects**: Canvas Confetti
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🏁 Getting Started
 
-## Deploy on Vercel
+### Prerequisites
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Node.js** >= 18.18.0
+- **npm**, **pnpm**, or **yarn**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Tirth3929v/tirth-patel-portfolio.git
+   cd tirth-patel-portfolio
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) with your browser.
+
+---
+
+## 📦 Scripts
+
+- `npm run dev`: Starts the Next.js development server on `http://localhost:3000`
+- `npm run build`: Generates an optimized production build
+- `npm run start`: Starts the Next.js production server
+- `npm run lint`: Runs ESLint for code analysis
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local clones & scratch
+/Beginner-to-Advanced-Python/
+/scratch/
