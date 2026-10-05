@@ -8,6 +8,7 @@ import {
   Check, 
   ExternalLink, 
   Play, 
+  Square,
   Search, 
   FileCode, 
   RotateCcw, 
@@ -22,7 +23,7 @@ import {
   PythonProject, 
   ProjectCompatibility 
 } from "@/data/pythonProjects";
-import { runPythonCode, ExecutionResult } from "@/lib/pyodideRunner";
+import { runPythonCode, stopPythonExecution, ExecutionResult } from "@/lib/pyodideRunner";
 
 interface TerminalStreamItem {
   id: string;
@@ -63,11 +64,16 @@ export default function PythonLabPage() {
   const [editableCode, setEditableCode] = useState<string>(currentProject.code);
 
   const handleSelectDay = (day: number) => {
+    // If execution is in progress, terminate worker cleanly
+    if (isRunning) {
+      stopPythonExecution("Execution cancelled due to project switch.");
+    }
     // If input is pending from a previous project, resolve cleanly before switching
     if (pendingInputResolverRef.current) {
       pendingInputResolverRef.current("");
       pendingInputResolverRef.current = null;
     }
+    setIsRunning(false);
     setIsWaitingForInput(false);
     setCurrentInputValue("");
     setSelectedDay(day);
@@ -77,6 +83,24 @@ export default function PythonLabPage() {
     setExecutionResult(null);
     setTerminalStream([]);
   };
+
+  const handleStopPython = () => {
+    stopPythonExecution("Execution cancelled by user: Web Worker terminated.");
+    if (pendingInputResolverRef.current) {
+      pendingInputResolverRef.current("");
+      pendingInputResolverRef.current = null;
+    }
+    setIsRunning(false);
+    setIsWaitingForInput(false);
+    setWasmStatusMessage("");
+  };
+
+  // Cleanup worker when component unmounts
+  useEffect(() => {
+    return () => {
+      stopPythonExecution("Component unmounted.");
+    };
+  }, []);
 
   // When active file changes in multi-file days
   const handleSelectFile = (fileName: string) => {
@@ -179,7 +203,7 @@ export default function PythonLabPage() {
       {
         id: getNextId("sys-start"),
         type: "system",
-        content: `> Running ${activeFileName} in CPython 3.12 WebAssembly...\n`,
+        content: `> Running ${activeFileName} in isolated Web Worker (CPython 3.12 WASM)...\n`,
       },
     ]);
 
@@ -235,6 +259,20 @@ export default function PythonLabPage() {
             return [
               ...prev,
               { id: getNextId("stdout-final"), type: "stdout", content: res.stdout },
+            ];
+          }
+          return prev;
+        });
+      }
+
+      // Ensure any error or termination message is rendered in terminal
+      if (res.stderr) {
+        setTerminalStream((prev) => {
+          const hasStderr = prev.some((p) => p.type === "stderr" && p.content.includes(res.stderr.trim()));
+          if (!hasStderr) {
+            return [
+              ...prev,
+              { id: getNextId("stderr-final"), type: "stderr", content: res.stderr },
             ];
           }
           return prev;
@@ -518,20 +556,25 @@ export default function PythonLabPage() {
                     <ExternalLink className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                     <span>Check Code</span>
                   </a>
+                ) : isRunning ? (
+                  <button
+                    type="button"
+                    onClick={handleStopPython}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-bold transition-all shadow-xs cursor-pointer"
+                    title="Stop execution and terminate Web Worker"
+                  >
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                    <span>Stop</span>
+                  </button>
                 ) : (
                   <button
                     type="button"
                     onClick={(e) => handleExecutePython(e)}
-                    disabled={isRunning}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-mono font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
-                    title="Execute code in Pyodide WebAssembly"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-mono font-bold transition-all shadow-xs cursor-pointer"
+                    title="Execute code in Web Worker WebAssembly"
                   >
-                    {isRunning ? (
-                      <RotateCcw className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                    )}
-                    <span>{isRunning ? "Running..." : "Run Python"}</span>
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Run Python</span>
                   </button>
                 )}
               </div>
